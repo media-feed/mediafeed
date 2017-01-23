@@ -8,4 +8,7 @@ logger = getLogger('mediafeed')
 
 
 def init():
+    from .commands import load_commands
+
     logger.info('Iniciando Media Feed')
+    load_commands()
