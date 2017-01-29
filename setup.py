@@ -11,6 +11,10 @@ setup(
     version=version,
     packages=find_packages(),
 
+    install_requires=[
+        'sqlalchemy',
+    ],
+
     author='Eduardo Klosowski',
     author_email='eduardo_klosowski@yahoo.com',
 
