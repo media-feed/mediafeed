@@ -16,6 +16,7 @@ subparsers_group = parser_group.add_subparsers(dest='_action', metavar='ACTION')
 
 def group_to_json(group, recursive=False):
     children = [(child.id, child.name) for child in group.children]
+    sources = [(source.id, source.name) for source in group.sources]
     json = {
         'id': group.id,
         'parent_id': group.parent_id,
@@ -24,6 +25,8 @@ def group_to_json(group, recursive=False):
         'path_name': group.path_name,
         'children_id': [id for id, _ in children],
         'children_names': [name for _, name in children],
+        'sources_id': [id for id, _ in sources],
+        'sources_names': [name for _, name in sources],
     }
     if recursive:
         json['children'] = [group_to_json(child, recursive=recursive) for child in group.children]
@@ -35,6 +38,7 @@ def print_group(group):
     print('Parent = %s' % group['parent_path_name'])
     print('Name = %s' % group['name'])
     print('Children = %s' % ', '.join(sorted(group['children_names'], key=lambda x: x.lower())))
+    print('Sources = %s' % ', '.join(sorted(group['sources_names'], key=lambda x: x.lower())))
 
 
 def print_group_tree(groups):
@@ -42,6 +46,8 @@ def print_group_tree(groups):
         lines = []
         for group in sorted(groups, key=lambda x: x['name'].lower()):
             lines.append('- %s' % group['name'])
+            for source in sorted(group['sources_names'], key=lambda x: x.lower()):
+                lines.append('  * %s' % source)
             lines += ['  ' + line for line in make_tree(group['children'])]
         return lines
     print(os.linesep.join(make_tree(groups)))

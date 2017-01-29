@@ -15,6 +15,16 @@ def get_group(db, id):
     return group
 
 
+def get_groups_ids_recursive(db, id):
+    def aux(group):
+        groups.add(group.id)
+        for child in group.children:
+            aux(child)
+    groups = set()
+    aux(get_group(db, id))
+    return groups
+
+
 class Group(Base):
     __tablename__ = 'group'
     __table_args__ = (
