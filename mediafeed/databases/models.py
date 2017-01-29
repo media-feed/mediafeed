@@ -79,5 +79,33 @@ class Source(Base):
         return ''
 
     @property
+    def thumbnail(self):
+        return Thumbnail(self, self.thumbnail_path)
+
+    @property
     def thumbnail_path(self):
         return os.path.join(DATA_PATH, 'thumbnail', 'source', self.module_id, self.id)
+
+
+class Thumbnail(object):
+    def __init__(self, model, filename):
+        self.model = model
+        self.module = model.module
+        self.url = model.thumbnail_url
+        self.path = filename
+
+    def __repr__(self):
+        return '<Thumbnail: "%s">' % self.path
+
+    def __bool__(self):
+        return self.exists()
+
+    def exists(self):
+        return os.path.exists(self.path)
+
+    def download(self):
+        self.module.get_thumbnail(self.path, self.url, self.model.options)
+
+    def remove(self):
+        if self:
+            os.remove(self.path)
