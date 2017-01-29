@@ -1,2 +1,2 @@
-from .models import Group, get_group  # NOQA
+from .models import Group, Source, get_group, get_source  # NOQA
 from .utils import Session, initdb  # NOQA
