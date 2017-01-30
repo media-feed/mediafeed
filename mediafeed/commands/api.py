@@ -3,6 +3,7 @@ from logging import getLogger
 
 from ..errors import NotFound
 from .errors import CommandNotFound
+from .utils import read_source
 
 
 logger = getLogger('mediafeed.commands')
@@ -15,7 +16,12 @@ _api_commands = {}
 def response_http(func, multiple):
     def decorate(**kwargs):
         for key, value in request.query.items():
-            kwargs[key] = value
+            if key == 'groups':
+                kwargs[key] = [int(i) for i in request.query.getlist(key)]
+            elif key == 'sources':
+                kwargs[key] = [read_source(i) for i in request.query.getlist(key)]
+            else:
+                kwargs[key] = value
         for key, value in request.forms.items():
             kwargs[key] = value
 
@@ -61,6 +67,12 @@ def load_commands():
     logger.info('Carregando comandos')
     global _app
     _app = Bottle()
+
+    @_app.hook('after_request')
+    def enable_cors():
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE'
+
     for method, url, func, multiple in _api_commands.values():
         _app.route(method=method, path=url, name=func.__name__,
                    callback=response_http(func, multiple))

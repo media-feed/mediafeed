@@ -4,6 +4,7 @@ from ..cli.parser import subparsers
 from ..databases import Group, Session, get_group
 from .api import api
 from .errors import CommandError
+from .utils import read_group
 
 
 __all__ = ('parser_group', 'group_list', 'group_show', 'group_add', 'group_edit', 'group_remove')
@@ -51,15 +52,6 @@ def print_group_tree(groups):
             lines += ['  ' + line for line in make_tree(group['children'])]
         return lines
     print(os.linesep.join(make_tree(groups)))
-
-
-def read_group(arg):
-    path = arg.split('/')
-    db = Session()
-    group = db.query(Group.id).filter(Group.parent_id == None, Group.name == path[0]).first()[0]
-    for i in range(1, len(path)):
-        group = db.query(Group.id).filter(Group.parent_id == group, Group.name == path[i]).first()[0]
-    return group
 
 
 # Commands

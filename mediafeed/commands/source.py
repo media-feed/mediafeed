@@ -4,8 +4,8 @@ from ..cli.parser import subparsers
 from ..databases import Session, Source, get_group, get_groups_ids_recursive, get_source
 from ..modules import get_module
 from .api import api
-from .group import read_group
-from .utils import bool_to_str, str_to_bool
+from .item import item_remove
+from .utils import bool_to_str, str_to_bool, read_group
 
 
 __all__ = ('parser_source', 'source_list', 'source_show', 'source_add', 'source_edit', 'source_remove')
@@ -27,6 +27,7 @@ def source_to_json(source):
         'thumbnail_url': source.thumbnail_url,
         'web_url': source.web_url,
         'auto_download_media': source.auto_download_media,
+        'items_id': [item.id for item in source.items],
     }
 
 
@@ -39,6 +40,7 @@ def print_source(source):
     print('Thumbnail URL = %s' % source['thumbnail_url'])
     print('Web URL = %s' % source['web_url'])
     print('Auto Download Media = %s' % bool_to_str(source['auto_download_media']))
+    print('Items = %d' % len(source['items_id']))
 
 
 def print_source_table(sources):
@@ -51,10 +53,6 @@ def print_source_table(sources):
         bool_to_str(source['auto_download_media']),
     ] for source in sorted(sources, key=lambda x: (x['group_path_name'].lower(), x['name'].lower()))],
         headers=['Module', 'ID', 'Group', 'Name', 'URL', 'Auto Download']))
-
-
-def read_source(arg):
-    return arg.split(':', 1)
 
 
 # Commands
@@ -138,8 +136,6 @@ def source_add(module, url, id=None, group=None, options=None, name=None, thumbn
                auto_download_media=None, db=None):
     module = get_module(module)
     meta = module.get_source_metadata(url)
-    if group is not None:
-        group = get_group(int(group)).id
     if options is None:
         options = ''
     if thumbnail is None:
@@ -150,6 +146,8 @@ def source_add(module, url, id=None, group=None, options=None, name=None, thumbn
         auto_download_media = str_to_bool(auto_download_media)
     if db is None:
         db = Session()
+    if group is not None:
+        group = get_group(db, int(group)).id
     source = Source(
         module_id=module.id,
         id=id or meta['id'],
@@ -162,7 +160,7 @@ def source_add(module, url, id=None, group=None, options=None, name=None, thumbn
     )
     db.add(source)
     db.commit()
-    if source.thumbnail:
+    if source.thumbnail_url:
         source.thumbnail.download()
     return source_to_json(source)
 
@@ -250,6 +248,11 @@ def source_remove(module, id, db=None):
     if db is None:
         db = Session()
     source = get_source(db, module, id)
+    items = source.items
+    for item in items:
+        item.sources.remove(source)
+        if not item.sources:
+            item_remove(item.module_id, item.id, db=db)
     db.delete(source)
     db.commit()
     source.thumbnail.remove()
