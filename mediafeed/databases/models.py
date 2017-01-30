@@ -160,6 +160,13 @@ class Item(Base):
         return os.path.join(DATA_PATH, 'thumbnail', 'source', self.module_id, self.id)
 
     @property
+    def medias(self):
+        try:
+            return [Media(self, filename) for filename in os.listdir(self.media_path)]
+        except FileNotFoundError:
+            return []
+
+    @property
     def media_path(self):
         return os.path.join(DATA_PATH, 'media', self.module_id, self.id)
 
@@ -186,3 +193,16 @@ class Thumbnail(object):
     def remove(self):
         if self:
             os.remove(self.path)
+
+
+class Media(object):
+    def __init__(self, item, filename):
+        self.item = item
+        self.filename = filename
+        self.path = os.path.join(item.media_path, filename)
+
+    def __repr__(self):
+        return '<Media: "%s">' % self.path
+
+    def remove(self):
+        os.remove(self.path)
