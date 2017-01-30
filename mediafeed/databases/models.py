@@ -1,11 +1,27 @@
 import os
-from sqlalchemy import Column, Boolean, ForeignKey, Integer, Sequence, String, UniqueConstraint, Text
+from datetime import datetime
+from sqlalchemy import (
+    Column, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Integer, Sequence, String, UniqueConstraint, Table,
+    Text,
+)
 from sqlalchemy.orm import relationship
 
 from ..modules import get_module
 from ..settings import DATA_PATH
-from .errors import GroupNotFound, SourceNotFound
+from .errors import GroupNotFound, SourceNotFound, ItemNotFound
 from .utils import Base
+
+
+source_item = Table(
+    'source_item',
+    Base.metadata,
+    Column('source_module', String(50), primary_key=True),
+    Column('source_id', String(50), primary_key=True),
+    Column('item_module', String(50), primary_key=True),
+    Column('item_id', String(50), primary_key=True),
+    ForeignKeyConstraint(('source_module', 'source_id'), ('source.module_id', 'source.id')),
+    ForeignKeyConstraint(('item_module', 'item_id'), ('item.module_id', 'item.id')),
+)
 
 
 def get_group(db, id):
@@ -74,6 +90,7 @@ class Source(Base):
     auto_download_media = Column(Boolean, nullable=False, default=False)
 
     group = relationship('Group', back_populates='sources')
+    items = relationship('Item', secondary=source_item, order_by='Item.datetime', back_populates='sources')
 
     def __repr__(self):
         return '<Source "%s:%s">' % (self.module_id, self.id)
@@ -95,6 +112,56 @@ class Source(Base):
     @property
     def thumbnail_path(self):
         return os.path.join(DATA_PATH, 'thumbnail', 'source', self.module_id, self.id)
+
+
+def get_item(db, module_id, id):
+    item = db.query(Item).get((module_id, id))
+    if item is None:
+        raise ItemNotFound('%s:%s' % (module_id, id))
+    return item
+
+
+class Item(Base):
+    __tablename__ = 'item'
+
+    module_id = Column(String(50), primary_key=True)
+    id = Column(String(50), primary_key=True)
+    url = Column(String(256), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    name = Column(String(50), nullable=False)
+    thumbnail_url = Column(String(256), nullable=False, default='')
+    media_url = Column(String(256), nullable=False, default='')
+    text = Column(Text, nullable=False)
+    viewed = Column(Boolean, nullable=False, default=False)
+
+    sources = relationship('Source', secondary=source_item, order_by='Source.name', back_populates='items')
+
+    def __repr__(self):
+        return '<Item "%s:%s">' % (self.module_id, self.id)
+
+    @property
+    def module(self):
+        return get_module(self.module_id)
+
+    @property
+    def timestamp(self):
+        return self.datetime.timestamp()
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self.datetime = datetime.fromtimestamp(value)
+
+    @property
+    def thumbnail(self):
+        return Thumbnail(self, self.thumbnail_path)
+
+    @property
+    def thumbnail_path(self):
+        return os.path.join(DATA_PATH, 'thumbnail', 'source', self.module_id, self.id)
+
+    @property
+    def media_path(self):
+        return os.path.join(DATA_PATH, 'media', self.module_id, self.id)
 
 
 class Thumbnail(object):
