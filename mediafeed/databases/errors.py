@@ -7,3 +7,7 @@ class GroupNotFound(NotFound):
 
 class SourceNotFound(NotFound):
     type = 'source'
+
+
+class ItemNotFound(NotFound):
+    type = 'item'

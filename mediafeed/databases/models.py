@@ -1,9 +1,23 @@
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
+from datetime import datetime
+from sqlalchemy import Boolean, DateTime, Integer, String, Text
+from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Sequence, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from ..modules import get_module
-from .errors import GroupNotFound, SourceNotFound
+from .errors import GroupNotFound, ItemNotFound, SourceNotFound
 from .utils import Base
+
+
+source_item = Table(
+    'source_item',
+    Base.metadata,
+    Column('source_module', String(64), primary_key=True),
+    Column('source_id', String(64), primary_key=True),
+    Column('item_module', String(64), primary_key=True),
+    Column('item_id', String(64), primary_key=True),
+    ForeignKeyConstraint(('source_module', 'source_id'), ('source.module_id', 'source.id')),
+    ForeignKeyConstraint(('item_module', 'item_id'), ('item.module_id', 'item.id')),
+)
 
 
 def get_group(db, id):
@@ -79,6 +93,7 @@ class Source(Base):
     error = Column(Text)
 
     group = relationship('Group', back_populates='sources')
+    items = relationship('Item', secondary=source_item, order_by='Item.datetime', back_populates='sources')
 
     def __repr__(self):
         return '<Source "%s:%s">' % (self.module_id, self.id)
@@ -92,3 +107,46 @@ class Source(Base):
         if self.group:
             return self.group.path_name
         return ''
+
+
+def get_item(db, module_id, id):
+    item = db.query(Item).get((module_id, id))
+    if item is None:
+        raise ItemNotFound('%s:%s' % (module_id, id))
+    return item
+
+
+class Item(Base):
+    __tablename__ = 'item'
+
+    module_id = Column(String(64), primary_key=True)
+    id = Column(String(64), primary_key=True)
+    url = Column(String(256), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    name = Column(String(64), nullable=False)
+    thumbnail_url = Column(String(256), nullable=False, default='')
+    media_url = Column(String(256), nullable=False, default='')
+    viewed = Column(Boolean, nullable=False, default=False)
+    text = Column(Text, nullable=False)
+
+    sources = relationship('Source', secondary=source_item, order_by='Source.name', back_populates='items')
+
+    def __repr__(self):
+        return '<Item "%s:%s">' % (self.module_id, self.id)
+
+    @property
+    def module(self):
+        return get_module(self.module_id)
+
+    @property
+    def options(self):
+        if self.sources:
+            return self.sources[0].options
+
+    @property
+    def timestamp(self):
+        return self.datetime.timestamp()
+
+    @timestamp.setter
+    def timestamp(self, value):
+        self.datetime = datetime.fromtimestamp(value)
