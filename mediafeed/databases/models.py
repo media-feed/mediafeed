@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 from ..modules import get_module
 from .errors import GroupNotFound, ItemNotFound, SourceNotFound
+from .files import Thumbnail
 from .utils import Base
 
 
@@ -108,6 +109,14 @@ class Source(Base):
             return self.group.path_name
         return ''
 
+    @property
+    def thumbnail(self):
+        return Thumbnail(self)
+
+    @thumbnail.deleter
+    def thumbnail(self):
+        self.thumbnail.remove()
+
 
 def get_item(db, module_id, id):
     item = db.query(Item).get((module_id, id))
@@ -150,3 +159,11 @@ class Item(Base):
     @timestamp.setter
     def timestamp(self, value):
         self.datetime = datetime.fromtimestamp(value)
+
+    @property
+    def thumbnail(self):
+        return Thumbnail(self)
+
+    @thumbnail.deleter
+    def thumbnail(self):
+        self.thumbnail.remove()
