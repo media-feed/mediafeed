@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 
 from ..modules import get_module
 from .errors import GroupNotFound, ItemNotFound, SourceNotFound
-from .files import Thumbnail
+from .files import Thumbnail, get_media_path, get_medias, remove_medias
 from .utils import Base
 
 
@@ -167,3 +167,15 @@ class Item(Base):
     @thumbnail.deleter
     def thumbnail(self):
         self.thumbnail.remove()
+
+    @property
+    def media_path(self):
+        return get_media_path(self)
+
+    @property
+    def medias(self):
+        return get_medias(self)
+
+    @medias.deleter
+    def medias(self):
+        remove_medias(self)
