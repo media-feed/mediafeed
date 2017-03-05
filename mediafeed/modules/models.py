@@ -18,6 +18,15 @@ class Module(object):
     def __repr__(self):
         return '<Module "%s">' % self.id
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'media': self.media,
+            'description': self.description,
+            'options': self.options,
+        }
+
     def _get_exec(self, args, options=None, stdout=DEVNULL):
         cmd = [self.path] + args
         if options:
