@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, DateTime, Integer, String, Text
 from sqlalchemy import Column, ForeignKey, ForeignKeyConstraint, Sequence, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
+from urllib.parse import quote
 
 from ..modules import get_module
 from .errors import GroupNotFound, ItemNotFound, SourceNotFound
@@ -176,6 +177,22 @@ class Item(Base):
 
     def __repr__(self):
         return '<Item "%s:%s">' % (self.module_id, self.id)
+
+    def to_dict(self):
+        return {
+            'module_id': self.module.id,
+            'id': self.id,
+            'sources_id': [source.id for source in self.sources],
+            'url': self.url,
+            'datetime': str(self.datetime),
+            'timestamp': self.timestamp,
+            'name': self.name,
+            'thumbnail_url': self.thumbnail.path,
+            'media_url': self.media_url,
+            'viewed': self.viewed,
+            'text': self.text,
+            'medias': [quote(media.filename) for media in self.medias],
+        }
 
     @property
     def module(self):
