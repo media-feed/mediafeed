@@ -59,6 +59,20 @@ class Group(Base):
     def __repr__(self):
         return '<Group "%s">' % self.path_name
 
+    def to_dict(self, recursive=False):
+        d = {
+            'id': self.id,
+            'parent_id': self.parent_id,
+            'parent_path_name': self.parent.path_name if self.parent else '',
+            'name': self.name,
+            'path_name': self.path_name,
+            'children_id': [child.id for child in self.children],
+            'sources_id': [source.id for source in self.sources],
+        }
+        if recursive:
+            d['children'] = [child.to_dict(recursive=recursive) for child in self.children]
+        return d
+
     @property
     def path(self):
         if self.parent_id is None:
