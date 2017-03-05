@@ -113,6 +113,26 @@ class Source(Base):
     def __repr__(self):
         return '<Source "%s:%s">' % (self.module_id, self.id)
 
+    def to_dict(self):
+        last_success = self.last_success_update
+        return {
+            'module_id': self.module_id,
+            'id': self.id,
+            'group_id': self.group_id,
+            'group_path_name': self.group_path_name,
+            'url': self.url,
+            'options': self.options,
+            'name': self.name,
+            'thumbnail_url': self.thumbnail.path,
+            'web_url': self.web_url,
+            'auto_download_media': self.auto_download_media,
+            'persist_thumbnails': self.persist_thumbnails,
+            'last_success_update': str(last_success) if last_success else None,
+            'last_success_update_timestamp': last_success.timestamp() if last_success else None,
+            'error': self.error,
+            'items_id': [item.id for item in self.items],
+        }
+
     @property
     def module(self):
         return get_module(self.module_id)
