@@ -1,12 +1,15 @@
+from datetime import datetime
 from logging import getLogger
 
+from ..databases import Item
 from ..databases import Session
 from ..databases import Source, get_source
 from ..databases import get_group, get_groups_ids_recursive
 from ..modules import get_module
+from .item import add_item
 
 
-__all__ = ('list_sources', 'show_source', 'add_source', 'edit_source', 'remove_source')
+__all__ = ('list_sources', 'show_source', 'add_source', 'edit_source', 'remove_source', 'update_items')
 
 
 logger = getLogger('mediafeed.commands.source')
@@ -120,3 +123,35 @@ def remove_source(module_id, id, db=None):
     db.commit()
     del source.thumbnail
     return {}
+
+
+def update_items(module_id, id, viewed=None, db=None):
+    logger.debug('check_new_items module_id=%r id=%r' % (module_id, id))
+    if db is None:
+        db = Session()
+    module = get_module(module_id)
+    source = get_source(db, module_id, id)
+    logger.info('Verificando novos itens de "%s"' % source.name)
+    items_id = {item.id for item in source.items}
+    try:
+        for item_data in module.get_items(source.url, source.options):
+            if item_data['id'] in items_id:
+                continue
+            item = db.query(Item).get((module_id, item_data['id']))
+            if item is not None:
+                logger.debug('%r: append %r' % (source, item))
+                logger.info('%s: atribuindo -> %s' % (source.name, item.name))
+                source.items.append(item)
+                db.commit()
+            else:
+                logger.debug('%r: criando item %r' % (source, item_data['id']))
+                if 'name' not in item_data:
+                    item_data = module.get_item(item_data['url'], source.options)
+                logger.info('%s: novo item -> %s' % (source.name, item_data['name']))
+                add_item(module_id, source.id, viewed=viewed, **item_data, db=db)
+        source.error = ''
+        source.last_success_update = datetime.now()
+    except Exception as e:
+        source.error = str(e)
+    db.commit()
+    return source.to_dict()
