@@ -14,6 +14,7 @@ setup(
     install_requires=[
         'bottle',
         'sqlalchemy',
+        'whitenoise',
     ],
 
     author='Eduardo Klosowski',
