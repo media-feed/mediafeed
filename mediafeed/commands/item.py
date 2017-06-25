@@ -2,9 +2,9 @@ from logging import getLogger
 from sqlalchemy import and_, or_
 
 from ..databases import Item, get_item
-from ..databases import Session
 from ..databases import Source, get_source
 from ..databases import get_group, get_groups_ids_recursive
+from .utils import with_db
 
 
 __all__ = ('list_items', 'show_item', 'add_item', 'edit_item', 'remove_item', 'download_media', 'remove_media')
@@ -13,11 +13,10 @@ __all__ = ('list_items', 'show_item', 'add_item', 'edit_item', 'remove_item', 'd
 logger = getLogger('mediafeed.commands.item')
 
 
+@with_db
 def list_items(groups_id=None, recursive=False, sources_id=None, viewed=None, media=None, db=None):
     logger.debug('list_items groups_id=%r recursive=%r sources_id=%r viewed=%r media=%r' % (
         groups_id, recursive, sources_id, viewed, media))
-    if db is None:
-        db = Session()
     if groups_id is None:
         groups_id = set()
     if recursive:
@@ -41,19 +40,17 @@ def list_items(groups_id=None, recursive=False, sources_id=None, viewed=None, me
     return [item.to_dict() for item in items]
 
 
+@with_db
 def show_item(module_id, id, db=None):
     logger.debug('show_item module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     item = get_item(db, module_id, id)
     return item.to_dict()
 
 
+@with_db
 def add_item(module_id, source_id, id, url, timestamp, name, text, thumbnail_url=None, media_url=None, viewed=None,
              db=None):
     logger.debug('add_item module_id=%r source_id=%r id=%r url=%r' % (module_id, source_id, id, url))
-    if db is None:
-        db = Session()
     source = get_source(db, module_id, source_id)
     item = db.query(Item).get((module_id, id))
     if not item:
@@ -78,11 +75,10 @@ def add_item(module_id, source_id, id, url, timestamp, name, text, thumbnail_url
     return item.to_dict()
 
 
+@with_db
 def edit_item(module_id, id, url=None, timestamp=None, name=None, thumbnail_url=None, media_url=None, viewed=None,
               text=None, db=None):
     logger.debug('edit_item module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     item = get_item(db, module_id, id)
     if url is not None:
         item.url = url
@@ -104,10 +100,9 @@ def edit_item(module_id, id, url=None, timestamp=None, name=None, thumbnail_url=
     return item.to_dict()
 
 
+@with_db
 def remove_item(module_id, id, db=None):
     logger.debug('remove_item module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     item = get_item(db, module_id, id)
     db.delete(item)
     db.commit()
@@ -116,10 +111,9 @@ def remove_item(module_id, id, db=None):
     return {}
 
 
+@with_db
 def download_media(module_id, item_id, options=None, db=None):
     logger.debug('download_media module_id=%r item_id=%r options=%r' % (module_id, item_id, options))
-    if db is None:
-        db = Session()
     item = get_item(db, module_id, item_id)
     module = item.module
     thumbnail = item.thumbnail
@@ -134,10 +128,9 @@ def download_media(module_id, item_id, options=None, db=None):
     return item.to_dict()
 
 
+@with_db
 def remove_media(module_id, item_id, filename=None, db=None):
     logger.debug('remove_media module_id=%r item_id=%r filename=%r' % (module_id, item_id, filename))
-    if db is None:
-        db = Session()
     item = get_item(db, module_id, item_id)
     if filename is None:
         del item.medias

@@ -2,11 +2,11 @@ from datetime import datetime
 from logging import getLogger
 
 from ..databases import Item
-from ..databases import Session
 from ..databases import Source, get_source
 from ..databases import get_group, get_groups_ids_recursive
 from ..modules import get_module
 from .item import add_item
+from .utils import with_db
 
 
 __all__ = ('list_sources', 'show_source', 'add_source', 'edit_source', 'remove_source', 'update_items')
@@ -15,11 +15,10 @@ __all__ = ('list_sources', 'show_source', 'add_source', 'edit_source', 'remove_s
 logger = getLogger('mediafeed.commands.source')
 
 
+@with_db
 def list_sources(group_id=0, recursive=None, auto_download_media=None, persist_thumbnails=None, error=None, db=None):
     logger.debug('list_sources group_id=%r recursive=%r auto_download_media=%r persist_thumbnails=%r error=%r' % (
         group_id, recursive, auto_download_media, persist_thumbnails, error))
-    if db is None:
-        db = Session()
     if group_id == 0 or group_id is None and recursive:
         sources = db.query(Source).all()
     elif group_id is None:
@@ -42,19 +41,17 @@ def list_sources(group_id=0, recursive=None, auto_download_media=None, persist_t
     return [source.to_dict() for source in sources]
 
 
+@with_db
 def show_source(module_id, id, db=None):
     logger.debug('show_source module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     source = get_source(db, module_id, id)
     return source.to_dict()
 
 
+@with_db
 def add_source(module_id, url, id=None, group_id=None, options=None, name=None, thumbnail_url=None, web_url=None,
                auto_download_media=None, persist_thumbnails=None, db=None):
     logger.debug('add_source module_id=%r url=%r' % (module_id, url))
-    if db is None:
-        db = Session()
     module = get_module(module_id)
     meta = module.get_source_metadata(url, options)
     if group_id is not None:
@@ -80,11 +77,10 @@ def add_source(module_id, url, id=None, group_id=None, options=None, name=None, 
     return source.to_dict()
 
 
+@with_db
 def edit_source(module_id, id, group_id=0, url=None, options=None, name=None, thumbnail_url=None, web_url=None,
                 auto_download_media=None, persist_thumbnails=None, db=None):
     logger.debug('edit_source module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     source = get_source(db, module_id, id)
     if group_id is None:
         source.group_id = None
@@ -114,10 +110,9 @@ def edit_source(module_id, id, group_id=0, url=None, options=None, name=None, th
     return source.to_dict()
 
 
+@with_db
 def remove_source(module_id, id, db=None):
     logger.debug('remove_source module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     source = get_source(db, module_id, id)
     db.delete(source)
     db.commit()
@@ -125,10 +120,9 @@ def remove_source(module_id, id, db=None):
     return {}
 
 
+@with_db
 def update_items(module_id, id, viewed=None, db=None):
     logger.debug('check_new_items module_id=%r id=%r' % (module_id, id))
-    if db is None:
-        db = Session()
     module = get_module(module_id)
     source = get_source(db, module_id, id)
     logger.info('Verificando novos itens de "%s"' % source.name)
