@@ -1,6 +1,7 @@
 from bottle import request
 
 from ..commands import item as cmd
+from ..jobs import job_manager
 from ..utils import read_bool
 from .server import api
 
@@ -32,4 +33,25 @@ def item_edit(module_id, id):
         module_id,
         id,
         viewed=request.json.get('viewed'),
+    )
+
+
+@api.post('/item/<module_id>/<id>/media')
+def item_media_download(module_id, id):
+    json = request.json or {}
+    options = json.get('options')
+    job_manager.add_job('download_media', {
+        'module_id': module_id,
+        'item_id': id,
+        'options': options,
+    })
+    return {}
+
+
+@api.delete('/item/<module_id>/<id>/media')
+def item_media_remove(module_id, id):
+    return cmd.remove_media(
+        module_id,
+        id,
+        filename=request.json.get('filename'),
     )

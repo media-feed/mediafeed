@@ -1,11 +1,12 @@
 from bottle import request
 
 from ..commands import source as cmd
+from ..jobs import job_manager
 from ..utils import read_bool, read_int
 from .server import api
 
 
-__all__ = ('source_list', 'source_show', 'source_add', 'source_edit', 'source_remove')
+__all__ = ('source_list', 'source_show', 'source_add', 'source_edit', 'source_remove', 'source_update')
 
 
 @api.get('/sources')
@@ -61,3 +62,15 @@ def source_edit(module_id, id):
 @api.delete('/sources/<module_id>/<id>')
 def source_remove(module_id, id):
     return cmd.remove_source(module_id, id)
+
+
+@api.post('/sources/<module_id>/<id>/update')
+def source_update(module_id, id):
+    json = request.json or {}
+    viewed = json.get('viewed', False)
+    job_manager.add_job('update_items', {
+        'module_id': module_id,
+        'id': id,
+        'viewed': viewed,
+    })
+    return {}
